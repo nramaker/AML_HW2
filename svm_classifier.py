@@ -8,7 +8,7 @@ reg_vectors=[]
 
 #tuning parameters
 epochs = 300
-Nb = 50 # batch size
+Nb = 5 # batch size
 reg_constants = [1]
 #reg_constants = [1**-3, 1**-2, 1**-1, 1]
 
@@ -46,9 +46,10 @@ def train_and_predict():
     print("Validation Features Shape: {}".format(valid_features.shape))
     print("Validation Labels Shape: {}".format(valid_labels.shape))
 
-    train_features = train_features.iloc[:2]
+    train_features = train_features.iloc[:10]
+    train_labels = train_labels.iloc[:10]
     print(train_features)
-    print("Labels {}".format(train_labels.iloc[:2]))
+    print("Labels {}".format(train_labels))
     for lam in reg_constants:
         print(" ")
         print("### Fitting model with reg_constant: {}".format(lam))
@@ -72,17 +73,17 @@ def fit(train_features, train_labels, test_features, test_labels, lam):
     B.fill(1)
 
     #loop to train model
-    for i in range(1, 10):
+    for i in range(1, 2):
         #make predictions
-        predictions = predict(np.transpose(train_features.as_matrix()), A, B, lam)
-        print("Predictions {}".format(predictions))
+        predictions = predict(np.transpose(train_features.as_matrix()), A, B)
+        # print("Predictions {}".format(predictions))
         #calculate loss
-        costs = calculate_cost(predictions, train_labels.as_matrix())
-        print("Costs {}".format(costs))
+        costs = calculate_cost(predictions, train_labels.as_matrix(), lam)
+        # print("Costs {}".format(costs))
         #update A and B values using gradient decent
         step_size = calc_step_size(epoch=i)
-        print("Step size {}".format(step_size))
-        A, B = calc_gradient(costs, Nb, A, B, step_size)
+        # print("Step size {}".format(step_size))
+        A, B = calc_updated_coeffs(costs, train_labels, Nb, A, B, step_size)
 
         #track our errors
         if(i%30 == 0):
@@ -92,9 +93,7 @@ def fit(train_features, train_labels, test_features, test_labels, lam):
     return [0.0], [0.1], [0.0], []
 
 
-def predict(X, A, B, lam):
-    #return vector of 
-
+def predict(X, A, B):
     # print(" {} * {} + {}".format(np.transpose(A).shape, X.shape, B.shape))
     pred = np.dot(np.transpose(A), X) + B
 
@@ -109,14 +108,32 @@ def show_plots(errors, reg_vectors):
     print("### Showing plots")
     #sum cost of each example, then average them by number of examples
 
-def calculate_cost(predictions, truths):  #do I need a subbatch here?
+def calculate_cost(predictions, truths, lam):  #do I need a subbatch here?
     #calculate hinge loss
+    #TODO add additional regularization argument
     costs = list(map(lambda y, gamma: max(0, 1 - (y*gamma)), truths, predictions))
     return costs
 
-def calc_gradient(data, batch_size, A, B, step_size):
+def calc_updated_coeffs(costs, labels, batch_size, A, B, step_size, lam):
+
+    joined = pd.DataFrame()
+    joined['cost']= costs
+    joined['label'] = list(labels)
+    print("joined {}".format(joined))
+
     #get sub batch from data of batch_size
+    selected = joined.sample(n=batch_size)
+    print("smaller batch {}".format(selected))
+
+    new_A = calc_new_A(A, costs=selected['cost'], labels=selected['labels'], eta=step_size, lam=lam)
+    new_B = calc_new_B(B, costs=selected['cost'], labels=selected['labels'], eta=step_size)
     return A, B
+
+def calc_new_A(A, costs, labels, eta, lam):
+    return []
+
+def calc_new_B(B, costs, labels, eta):
+    return []
 
 def calc_step_size(epoch):
     m = 1.0
