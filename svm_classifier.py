@@ -46,10 +46,10 @@ def train_and_predict():
     print("Validation Features Shape: {}".format(valid_features.shape))
     print("Validation Labels Shape: {}".format(valid_labels.shape))
 
-    train_features = train_features.iloc[:10]
-    train_labels = train_labels.iloc[:10]
-    print(train_features)
-    print("Labels {}".format(train_labels))
+    # train_features = train_features.iloc[1:2]
+    # train_labels = train_labels.iloc[1:2]
+    # print(train_features)
+    # print("Labels {}".format(train_labels))
     for lam in reg_constants:
         print(" ")
         print("### Fitting model with reg_constant: {}".format(lam))
@@ -69,11 +69,12 @@ def fit(train_features, train_labels, test_features, test_labels, lam):
     #Initialize A and B
     A = np.empty(shape=(feature_count,1))
     A.fill(1)
-    B = np.empty(shape=(1,row_count))
-    B.fill(1)
+    B = 1
+    # B = np.empty(shape=(1,row_count))
+    # B.fill(1)
 
     #loop to train model
-    for i in range(1, 2):
+    for i in range(1, 5):
         #make predictions
         predictions = predict(np.transpose(train_features.as_matrix()), A, B)
         # print("Predictions {}".format(predictions))
@@ -83,11 +84,13 @@ def fit(train_features, train_labels, test_features, test_labels, lam):
         #update A and B values using gradient decent
         step_size = calc_step_size(epoch=i)
         # print("Step size {}".format(step_size))
-        A, B = calc_updated_coeffs(costs, train_labels, Nb, A, B, step_size)
+        print("Previous A.shape {}".format(A.shape))
+        A, B = calc_updated_coeffs(train_features, train_labels.as_matrix(), costs, Nb, A, B, step_size, lam)
+        print("New A.shape {}".format(A.shape))
 
         #track our errors
         if(i%30 == 0):
-            print("Epoch {}".format(i))
+            print("Epoch {} A = {} B = {}".format(i, A, B))
             #TODO compute accurracies
             #TODO record coefficient vectors
     return [0.0], [0.1], [0.0], []
@@ -114,26 +117,75 @@ def calculate_cost(predictions, truths, lam):  #do I need a subbatch here?
     costs = list(map(lambda y, gamma: max(0, 1 - (y*gamma)), truths, predictions))
     return costs
 
-def calc_updated_coeffs(costs, labels, batch_size, A, B, step_size, lam):
+def calc_updated_coeffs(features, labels, costs, batch_size, A, B, step_size, lam):
 
-    joined = pd.DataFrame()
+    joined = features
     joined['cost']= costs
     joined['label'] = list(labels)
-    print("joined {}".format(joined))
+    # print("joined {}".format(joined))
 
     #get sub batch from data of batch_size
     selected = joined.sample(n=batch_size)
-    print("smaller batch {}".format(selected))
+    # print("smaller batch {}".format(selected))
 
-    new_A = calc_new_A(A, costs=selected['cost'], labels=selected['labels'], eta=step_size, lam=lam)
-    new_B = calc_new_B(B, costs=selected['cost'], labels=selected['labels'], eta=step_size)
-    return A, B
+    selected_costs = selected['cost']
+    selected_labels = selected['label']
+    selected_X = selected.drop('cost', axis=1).drop('label', axis=1)
 
-def calc_new_A(A, costs, labels, eta, lam):
-    return []
+    new_A = calc_new_A(A=A, X=selected_X, costs=selected_costs, labels=selected_labels, eta=step_size, lam=lam)
+    new_B = calc_new_B(B, costs=selected_costs, labels=selected_labels, eta=step_size)
+    return new_A, new_B
+
+def calc_new_A(A, X, costs, labels, eta, lam):
+    N = len(labels)
+
+    # lamA = lam*A
+    # print("lamA {}".format(lamA.T))
+    # gradients = []
+    # print(labels)
+    # for i in range(0, len(labels.as_matrix())):
+    #     label = labels.as_matrix()[i]
+    #     print("label {}".format(label))
+    #     cost = costs.as_matrix()[i]
+    #     print("cost {}".format(cost))
+    #     this_x = X.as_matrix()[i]
+    #     print("this_x {}".format(this_x))
+    #     cond = labels.as_matrix()[i] * costs.as_matrix()[i]  # this is the value that we test on
+    #     print("condition at {} is {}".format(i, cond))
+
+    #     if cond >= 1:
+    #         print("Condition met")
+    #         gradients.append(lamA)
+    #     else:
+    #         print("Else met")
+    #         x = label*this_x
+    #         print("x {}".format(x))
+    #         gradients.append(lamA.T - x)
+    # print("A {}".format(A))
+    # print("labels {}".format(labels))
+    # print("X {}".format(X.as_matrix()))
+    # print("labels.shape {}".format(labels.shape))
+    # print("lam {}".format(lam))
+    #print("lam * A - y {}".format(lam*A -labels ))
+    # print("y * cost {}".format(labels*costs))
+
+    gradients = list(map(lambda y, cost, X: lam*A.T if y*cost>=1 else (lam*A.T - y*(X)), labels, costs, X.as_matrix()))
+    
+    #avg = list(map(lambda grads: sum(grads), gradients.iloc[0]))
+    # avg = np.array(avg) - N
+    avg = sum(gradients)/N
+
+    # print("gradients {}".format(gradients))
+    # print("average {}".format(avg))
+    new_value = A - (eta*avg).T
+    print("new_value_A{}".format(new_value))
+    return new_value
 
 def calc_new_B(B, costs, labels, eta):
-    return []
+    gradients = list(map(lambda y, cost: 0 if y*cost>=1 else y*(-1.0), labels, costs))
+    avg = sum(gradients)/len(gradients)
+    new_value = B - eta*avg
+    return new_value
 
 def calc_step_size(epoch):
     m = 1.0
