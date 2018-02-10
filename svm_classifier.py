@@ -70,34 +70,34 @@ def fit(train_features, train_labels, test_features, test_labels, lam):
     A = np.empty(shape=(feature_count,1))
     A.fill(1)
     B = 1
-    # B = np.empty(shape=(1,row_count))
-    # B.fill(1)
 
     #loop to train model
-    for i in range(1, 5):
+    for i in range(1, epochs):
         #make predictions
         predictions = predict(np.transpose(train_features.as_matrix()), A, B)
         # print("Predictions {}".format(predictions))
         #calculate loss
-        costs = calculate_cost(predictions, train_labels.as_matrix(), lam)
+        costs = calculate_cost(predictions, train_labels.as_matrix())
         # print("Costs {}".format(costs))
         #update A and B values using gradient decent
         step_size = calc_step_size(epoch=i)
         # print("Step size {}".format(step_size))
-        print("Previous A.shape {}".format(A.shape))
+        #print("Previous X.shape {}".format(train_features.shape))
         A, B = calc_updated_coeffs(train_features, train_labels.as_matrix(), costs, Nb, A, B, step_size, lam)
-        print("New A.shape {}".format(A.shape))
+        #print("New X.shape {}".format(train_features.shape))
 
         #track our errors
         if(i%30 == 0):
-            print("Epoch {} A = {} B = {}".format(i, A, B))
+            print("############## Epoch {} ".format(i))
+            print("A = {}".format( A))
+            print("B = {}".format(B))
             #TODO compute accurracies
             #TODO record coefficient vectors
     return [0.0], [0.1], [0.0], []
 
 
 def predict(X, A, B):
-    # print(" {} * {} + {}".format(np.transpose(A).shape, X.shape, B.shape))
+    # print(" {} * {}".format(np.transpose(A).shape, X.shape))
     pred = np.dot(np.transpose(A), X) + B
 
     return pred[0]
@@ -105,13 +105,15 @@ def predict(X, A, B):
 def predict_and_test_accuracy(test_features, test_labels, A, B):
     pass
 
+def calc_accuracy(predictions, truths):
+    N = len(truths)
 #plot error
 def show_plots(errors, reg_vectors):
     print(" ")
     print("### Showing plots")
     #sum cost of each example, then average them by number of examples
 
-def calculate_cost(predictions, truths, lam):  #do I need a subbatch here?
+def calculate_cost(predictions, truths):  #do I need a subbatch here?
     #calculate hinge loss
     #TODO add additional regularization argument
     costs = list(map(lambda y, gamma: max(0, 1 - (y*gamma)), truths, predictions))
@@ -119,7 +121,7 @@ def calculate_cost(predictions, truths, lam):  #do I need a subbatch here?
 
 def calc_updated_coeffs(features, labels, costs, batch_size, A, B, step_size, lam):
 
-    joined = features
+    joined = pd.DataFrame.copy(features)
     joined['cost']= costs
     joined['label'] = list(labels)
     # print("joined {}".format(joined))
@@ -134,6 +136,8 @@ def calc_updated_coeffs(features, labels, costs, batch_size, A, B, step_size, la
 
     new_A = calc_new_A(A=A, X=selected_X, costs=selected_costs, labels=selected_labels, eta=step_size, lam=lam)
     new_B = calc_new_B(B, costs=selected_costs, labels=selected_labels, eta=step_size)
+    
+    # joined.drop('cost', axis=1).drop('label', axis=1)
     return new_A, new_B
 
 def calc_new_A(A, X, costs, labels, eta, lam):
@@ -178,7 +182,7 @@ def calc_new_A(A, X, costs, labels, eta, lam):
     # print("gradients {}".format(gradients))
     # print("average {}".format(avg))
     new_value = A - (eta*avg).T
-    print("new_value_A{}".format(new_value))
+    #print("new_value_A{}".format(new_value))
     return new_value
 
 def calc_new_B(B, costs, labels, eta):
