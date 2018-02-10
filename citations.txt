@@ -1,0 +1,12 @@
+
+
+DAFs SVM code - http://luthuli.cs.uiuc.edu/~daf/courses/AML-18/RCodeClassification/svmholdoutsquaredfeats.R
+Python List tutorial - https://developers.google.com/edu/python/lists
+Reading CSV in Pandas = https://pythonspot.com/pandas-read-csv/
+Changing a Dataframe to numpy array - https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.as_matrix.html
+Splitting dataframe with pandas - https://stackoverflow.com/questions/24147278/how-do-i-create-test-and-train-samples-from-one-dataframe-with-pandas
+Pandas data access - https://stackoverflow.com/questions/25254016/pandas-get-first-row-value-of-a-given-column
+Pandas drop - https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.drop.html
+Python SVM from scratch - https://pythonprogramming.net/svm-in-python-machine-learning-tutorial/
+Scaling with sklearn https://stackoverflow.com/questions/24645153/pandas-dataframe-columns-scaling-with-sklearn
+formulas for updating gradients page 35 -http://luthuli.cs.uiuc.edu/~daf/courses/AML-18/learning-book-15-Jan.pdf
