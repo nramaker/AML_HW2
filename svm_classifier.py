@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
+from math import e
 
 #variables to track error
 errors = []
@@ -25,7 +26,6 @@ def train_and_predict():
     print(" ")
     print("### Scaling data")
     data = scale_data(data)
-
     
     #extract training data 80%
     print(" ")
@@ -46,8 +46,8 @@ def train_and_predict():
     print("Validation Features Shape: {}".format(valid_features.shape))
     print("Validation Labels Shape: {}".format(valid_labels.shape))
 
-    # train_features = train_features.iloc[1:2]
-    # train_labels = train_labels.iloc[1:2]
+    train_features = train_features.iloc[0:5]
+    train_labels = train_labels.iloc[0:5]
     # print(train_features)
     # print("Labels {}".format(train_labels))
     for lam in reg_constants:
@@ -57,7 +57,7 @@ def train_and_predict():
         # print(A, B, errors)
 
     #check test accuracy using best classifier
-    predict_and_test_accuracy(test_features, test_labels, A, B)
+    # predict_and_test_accuracy(test_features, test_labels, A, B)
     return [], []
 
 
@@ -68,45 +68,48 @@ def fit(train_features, train_labels, test_features, test_labels, lam):
 
     #Initialize A and B
     A = np.empty(shape=(feature_count,1))
-    A.fill(1)
-    B = 1
+    A.fill(0)
+    B = 0
 
     #loop to train model
-    for i in range(1, epochs):
+    for i in range(1, 30):
         #make predictions
         predictions = predict(np.transpose(train_features.as_matrix()), A, B)
-        # print("Predictions {}".format(predictions))
         #calculate loss
         costs = calculate_cost(predictions, train_labels.as_matrix())
-        # print("Costs {}".format(costs))
         #update A and B values using gradient decent
         step_size = calc_step_size(epoch=i)
-        # print("Step size {}".format(step_size))
-        #print("Previous X.shape {}".format(train_features.shape))
         A, B = calc_updated_coeffs(train_features, train_labels.as_matrix(), costs, Nb, A, B, step_size, lam)
-        #print("New X.shape {}".format(train_features.shape))
 
         #track our errors
-        if(i%30 == 0):
+        if(i%10 == 0):
+            print("")
             print("############## Epoch {} ".format(i))
-            print("A = {}".format( A))
+            print("A = {}".format(A.T))
             print("B = {}".format(B))
-            #TODO compute accurracies
-            #TODO record coefficient vectors
-    return [0.0], [0.1], [0.0], []
+            # count_instances_of_value(test_labels, -1)
+            predict_and_test_accuracy(test_features,test_labels, A, B)
+    return A, B, [0.0], []
 
+def count_instances_of_value(data, value):
+    df = np.where(data==value, -1, 0)
+    print("There are {} instances of {} in the data".format(sum(df),value))
 
 def predict(X, A, B):
     # print(" {} * {}".format(np.transpose(A).shape, X.shape))
     pred = np.dot(np.transpose(A), X) + B
-
     return pred[0]
 
-def predict_and_test_accuracy(test_features, test_labels, A, B):
-    pass
+def predict_and_test_accuracy(features, labels, A, B):
+    # print("features.shape {}".format(features.shape))
+    # print("A. {}".format(A))
+    predictions = predict(np.transpose(features.as_matrix()), A, B)
+    correct_predictions = list(map(lambda pred, truth: 1 if pred*truth >=0 else 0, predictions, labels.T ))
+    accuracy = sum(correct_predictions)/float(len(predictions))
+    print("Accuracy {}".format(accuracy))
+    print("{} correct out of {} predictions".format(sum(correct_predictions),len(predictions)))
+    return accuracy
 
-def calc_accuracy(predictions, truths):
-    N = len(truths)
 #plot error
 def show_plots(errors, reg_vectors):
     print(" ")
@@ -114,9 +117,11 @@ def show_plots(errors, reg_vectors):
     #sum cost of each example, then average them by number of examples
 
 def calculate_cost(predictions, truths):  #do I need a subbatch here?
-    #calculate hinge loss
-    #TODO add additional regularization argument
+    # print("truths {}".format(truths))
+    # print("predictions {}".format(predictions))
+    # print("truths*predictions {}".format(truths*predictions))
     costs = list(map(lambda y, gamma: max(0, 1 - (y*gamma)), truths, predictions))
+    print("costs {}".format(costs))
     return costs
 
 def calc_updated_coeffs(features, labels, costs, batch_size, A, B, step_size, lam):
@@ -134,65 +139,69 @@ def calc_updated_coeffs(features, labels, costs, batch_size, A, B, step_size, la
     selected_labels = selected['label']
     selected_X = selected.drop('cost', axis=1).drop('label', axis=1)
 
-    new_A = calc_new_A(A=A, X=selected_X, costs=selected_costs, labels=selected_labels, eta=step_size, lam=lam)
-    new_B = calc_new_B(B, costs=selected_costs, labels=selected_labels, eta=step_size)
+    new_A = calc_new_A(A=A.T, X=selected_X, costs=selected_costs, labels=selected_labels, eta=step_size, lam=lam)
+    new_B = calc_new_B(B, costs=selected_costs, labels=selected_labels, eta=step_size, lam=lam)
     
-    # joined.drop('cost', axis=1).drop('label', axis=1)
     return new_A, new_B
 
 def calc_new_A(A, X, costs, labels, eta, lam):
     N = len(labels)
-
-    # lamA = lam*A
-    # print("lamA {}".format(lamA.T))
-    # gradients = []
-    # print(labels)
-    # for i in range(0, len(labels.as_matrix())):
-    #     label = labels.as_matrix()[i]
-    #     print("label {}".format(label))
-    #     cost = costs.as_matrix()[i]
-    #     print("cost {}".format(cost))
-    #     this_x = X.as_matrix()[i]
-    #     print("this_x {}".format(this_x))
-    #     cond = labels.as_matrix()[i] * costs.as_matrix()[i]  # this is the value that we test on
-    #     print("condition at {} is {}".format(i, cond))
-
-    #     if cond >= 1:
-    #         print("Condition met")
-    #         gradients.append(lamA)
-    #     else:
-    #         print("Else met")
-    #         x = label*this_x
-    #         print("x {}".format(x))
-    #         gradients.append(lamA.T - x)
-    # print("A {}".format(A))
-    # print("labels {}".format(labels))
-    # print("X {}".format(X.as_matrix()))
-    # print("labels.shape {}".format(labels.shape))
-    # print("lam {}".format(lam))
-    #print("lam * A - y {}".format(lam*A -labels ))
-    # print("y * cost {}".format(labels*costs))
-
-    gradients = list(map(lambda y, cost, X: lam*A.T if y*cost>=1 else (lam*A.T - y*(X)), labels, costs, X.as_matrix()))
+    lamA = lam*A
+    batch_grads = []
     
-    #avg = list(map(lambda grads: sum(grads), gradients.iloc[0]))
-    # avg = np.array(avg) - N
-    avg = sum(gradients)/N
+    x_matrix = X.as_matrix()
+    cost_matrix = costs.as_matrix()
+    label_matrix = labels.as_matrix()
 
-    # print("gradients {}".format(gradients))
-    # print("average {}".format(avg))
-    new_value = A - (eta*avg).T
-    #print("new_value_A{}".format(new_value))
-    return new_value
+    for i in range(0, N):
+        x = x_matrix[i]
+        gamma = cost_matrix[i]
+        y = label_matrix[i]
 
-def calc_new_B(B, costs, labels, eta):
-    gradients = list(map(lambda y, cost: 0 if y*cost>=1 else y*(-1.0), labels, costs))
-    avg = sum(gradients)/len(gradients)
-    new_value = B - eta*avg
-    return new_value
+        #gradient decent algorithm
+        if y*gamma >= 1:
+            batch_grads.append(lamA)
+        else:
+            batch_grads.append(lamA - np.dot(y,x))
+    
+    grad_avg = sum(batch_grads)/N
+    # print("avg {}".format(grad_avg))
+    g_zero = (lam/2)*(A*A)
+    # print("g_zero {}".format(g_zero))
+
+    update = (-1.0)*grad_avg - (g_zero)
+    # print("update {}".format(update))
+    new_A = A + (np.dot(eta,update))
+
+    return new_A.T
+
+def calc_new_B(B, costs, labels, eta, lam):
+    N = len(labels)
+    batch_grads = []
+    
+    cost_matrix = costs.as_matrix()
+    label_matrix = labels.as_matrix()
+
+    for i in range(0, N):
+        gamma = cost_matrix[i]
+        y = label_matrix[i]
+
+        if y*gamma >=1:
+            batch_grads.append(0)
+        else:
+            batch_grads.append(-1.0 * y * gamma)
+
+    # print("b batch_grads {}".format(batch_grads))
+    grad_avg = sum(batch_grads)/N
+
+    # print("avg {}".format(grad_avg))
+
+    update = -1.0 * grad_avg - (lam*B)
+    new_B = B + (np.dot(eta, update))
+    return new_B
 
 def calc_step_size(epoch):
-    m = 1.0
+    m = 1
     n = 1.0
     return m/(epoch+n)
 
@@ -270,7 +279,7 @@ def split_dataset(data, test_percent, validation_percent=0):
     train_percent = 100 - test_percent - validation_percent
     print("Splitting data in ratio of {}% training, {}% test, and {}% validation.".format(train_percent,test_percent,validation_percent))
 
-    seed = 507
+    seed = 207
     ratio = train_percent/float(100)
     print("Taking {} of all data for training".format(ratio))
     train = data.sample(frac = ratio, random_state = seed)
