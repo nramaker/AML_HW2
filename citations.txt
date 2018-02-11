@@ -9,3 +9,5 @@ Python SVM from scratch - https://pythonprogramming.net/svm-in-python-machine-le
 Scaling with sklearn https://stackoverflow.com/questions/24645153/pandas-dataframe-columns-scaling-with-sklearn
 formulas for updating gradients page 35 -http://luthuli.cs.uiuc.edu/~daf/courses/AML-18/learning-book-15-Jan.pdf
 lamba with conditions - https://stackoverflow.com/questions/1585322/is-there-a-way-to-perform-if-in-pythons-lambda
+matplot lib tutorial - https://matplotlib.org/users/pyplot_tutorial.html
+legends and lines - https://matplotlib.org/users/legend_guide.html

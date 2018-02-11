@@ -2,15 +2,22 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from math import e
+import matplotlib.pyplot as plt
+from matplotlib.legend_handler import HandlerLine2D
 
-#variables to track error
-errors = []
-reg_vectors=[]
+#arrays to help us plot
+accuracies = []
+A_magnitudes=[]
+B_magnitudes= []
+iters=[]
 
 #tuning parameters
 epochs = 300
-Nb = 5 # batch size
-reg_constants = [1]
+Nb = 50 # batch size
+m = .5 #used to calulate step size
+n = 1.0 # used to calculate step size
+reporting_constant = 1 # how often do we want to track our accuracies and magnitueds
+reg_constants = [ .001, .01, .1, 1]
 #reg_constants = [1**-3, 1**-2, 1**-1, 1]
 
 def train_and_predict():
@@ -46,19 +53,21 @@ def train_and_predict():
     print("Validation Features Shape: {}".format(valid_features.shape))
     print("Validation Labels Shape: {}".format(valid_labels.shape))
 
-    train_features = train_features.iloc[0:5]
-    train_labels = train_labels.iloc[0:5]
+    # train_features = train_features.iloc[0:5]
+    # train_labels = train_labels.iloc[0:5]
     # print(train_features)
     # print("Labels {}".format(train_labels))
     for lam in reg_constants:
         print(" ")
         print("### Fitting model with reg_constant: {}".format(lam))
-        A, B, errors, accuracies = fit(train_features, train_labels, valid_features, valid_labels, lam)
-        # print(A, B, errors)
+        accs, a_mags, b_mags, its= fit(train_features, train_labels, valid_features, valid_labels, lam)
+        accuracies.append(accs)
+        A_magnitudes.append(a_mags)
+        B_magnitudes.append(b_mags)
+        iters.append(its)
 
     #check test accuracy using best classifier
     # predict_and_test_accuracy(test_features, test_labels, A, B)
-    return [], []
 
 
 def fit(train_features, train_labels, test_features, test_labels, lam):
@@ -68,11 +77,17 @@ def fit(train_features, train_labels, test_features, test_labels, lam):
 
     #Initialize A and B
     A = np.empty(shape=(feature_count,1))
-    A.fill(0)
-    B = 0
+    A.fill(1)
+    B = 3
+
+    #local measurements
+    accs = []
+    a_mags = []
+    b_mags = []
+    its = []
 
     #loop to train model
-    for i in range(1, 30):
+    for i in range(1, epochs):
         #make predictions
         predictions = predict(np.transpose(train_features.as_matrix()), A, B)
         #calculate loss
@@ -82,14 +97,18 @@ def fit(train_features, train_labels, test_features, test_labels, lam):
         A, B = calc_updated_coeffs(train_features, train_labels.as_matrix(), costs, Nb, A, B, step_size, lam)
 
         #track our errors
-        if(i%10 == 0):
-            print("")
-            print("############## Epoch {} ".format(i))
-            print("A = {}".format(A.T))
-            print("B = {}".format(B))
+        if(i%reporting_constant == 0):
+            # print("")
+            # print("############## Epoch {} ".format(i))
+            its.append(i)
+            # print("A = {}".format(A.T))
+            a_mags.append(A)
+            # print("B = {}".format(B))
+            b_mags.append(B)
             # count_instances_of_value(test_labels, -1)
-            predict_and_test_accuracy(test_features,test_labels, A, B)
-    return A, B, [0.0], []
+            accuracy = predict_and_test_accuracy(test_features,test_labels, A, B)
+            accs.append(accuracy)
+    return accs, a_mags, b_mags, its
 
 def count_instances_of_value(data, value):
     df = np.where(data==value, -1, 0)
@@ -106,22 +125,53 @@ def predict_and_test_accuracy(features, labels, A, B):
     predictions = predict(np.transpose(features.as_matrix()), A, B)
     correct_predictions = list(map(lambda pred, truth: 1 if pred*truth >=0 else 0, predictions, labels.T ))
     accuracy = sum(correct_predictions)/float(len(predictions))
-    print("Accuracy {}".format(accuracy))
-    print("{} correct out of {} predictions".format(sum(correct_predictions),len(predictions)))
+    # print("Accuracy {}".format(accuracy))
+    # print("{} correct out of {} predictions".format(sum(correct_predictions),len(predictions)))
     return accuracy
 
 #plot error
-def show_plots(errors, reg_vectors):
+def show_plots():
     print(" ")
     print("### Showing plots")
+    plot_accuracies(iters, accuracies, reg_constants)
     #sum cost of each example, then average them by number of examples
+
+def plot_accuracies(iters, accuracies, lams):
+    # plot accuracies that we recorded for given lambda
+    plt.figure(1)
+
+    # plt.subplot(221)
+    
+    for i in range(0, len(lams)):
+        lam = lams[i]       
+        print("") 
+        # print("plotting {} values".format(lam))
+        its = iters[i]
+        # print("iterations {}".format(its))
+        accs = accuracies[i]
+        # print("accuracies {}".format(accs))
+        
+        plt.plot(its, accs, marker='o', label = lam)
+        plt.xscale('log')
+        plt.yscale('linear')
+        
+    plt.title('Accuracies for each reg constant')
+    plt.legend()
+    plt.grid(True)
+    
+    # plt.figure(2)
+    # line1, = plt.plot([3,2,1], marker='x', label='Line 1')
+    # line2, = plt.plot([1,2,3], marker='o', label='Line 2')
+
+    # plt.legend(handler_map={line1: HandlerLine2D(numpoints=4)})
+    plt.show()
 
 def calculate_cost(predictions, truths):  #do I need a subbatch here?
     # print("truths {}".format(truths))
     # print("predictions {}".format(predictions))
     # print("truths*predictions {}".format(truths*predictions))
     costs = list(map(lambda y, gamma: max(0, 1 - (y*gamma)), truths, predictions))
-    print("costs {}".format(costs))
+    # print("costs {}".format(costs))
     return costs
 
 def calc_updated_coeffs(features, labels, costs, batch_size, A, B, step_size, lam):
@@ -201,8 +251,6 @@ def calc_new_B(B, costs, labels, eta, lam):
     return new_B
 
 def calc_step_size(epoch):
-    m = 1
-    n = 1.0
     return m/(epoch+n)
 
 def open_and_join_data():
@@ -304,5 +352,5 @@ def extract_features_labels(data):
 #main entry
 if __name__ == "__main__":
     print(" ##### AML HW2 SVM Classifier  ##### ")
-    errors, reg_vectors = train_and_predict()
-    show_plots(errors, reg_vectors)
+    train_and_predict()
+    show_plots()
