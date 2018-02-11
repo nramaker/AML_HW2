@@ -16,9 +16,9 @@ epochs = 300
 Nb = 50 # batch size
 m = .5 #used to calulate step size
 n = 1.0 # used to calculate step size
-reporting_constant = 1 # how often do we want to track our accuracies and magnitueds
+reporting_constant = 5 # how often do we want to track our accuracies and magnitueds
 reg_constants = [ .001, .01, .1, 1]
-#reg_constants = [1**-3, 1**-2, 1**-1, 1]
+#reg_constants = [ 1]
 
 def train_and_predict():
     print(" ")
@@ -73,7 +73,6 @@ def train_and_predict():
 def fit(train_features, train_labels, test_features, test_labels, lam):
     #Initialize A and B to 1s
     feature_count = train_features.shape[1]
-    row_count = len(train_features)
 
     #Initialize A and B
     A = np.empty(shape=(feature_count,1))
@@ -99,13 +98,9 @@ def fit(train_features, train_labels, test_features, test_labels, lam):
         #track our errors
         if(i%reporting_constant == 0):
             # print("")
-            # print("############## Epoch {} ".format(i))
             its.append(i)
-            # print("A = {}".format(A.T))
             a_mags.append(A)
-            # print("B = {}".format(B))
             b_mags.append(B)
-            # count_instances_of_value(test_labels, -1)
             accuracy = predict_and_test_accuracy(test_features,test_labels, A, B)
             accs.append(accuracy)
     return accs, a_mags, b_mags, its
@@ -131,10 +126,46 @@ def predict_and_test_accuracy(features, labels, A, B):
 
 #plot error
 def show_plots():
-    print(" ")
-    print("### Showing plots")
-    plot_accuracies(iters, accuracies, reg_constants)
-    #sum cost of each example, then average them by number of examples
+    # plot accuracies that we recorded for given lambda
+    plt.figure(1)
+
+    # plt.subplot(221)
+    
+    for i in range(0, len(reg_constants)):
+        lam = reg_constants[i]       
+        its = iters[i]
+        accs = accuracies[i]
+        
+        plt.plot(its, accs, marker='o', label = lam)
+        plt.xscale('log')
+        plt.yscale('linear')
+        
+    plt.title('Accuracies for each reg constant')
+    plt.legend()
+    plt.grid(True)
+    
+    plt.figure(2)
+    feature_titles = ['age', 'fnlwgt', 'education-num', 'capital-gain', 'capital-loss', 'hours-per-week']
+    plot_locs = [221, 222, 223, 224]
+    plt.title("Coeffiecent magnitudes")
+    for i in range(0, len(reg_constants)):
+        plt.subplot(plot_locs[i])
+        lam = reg_constants[i]
+        plt.title("reg constant: {}".format(lam))
+        a_mag = A_magnitudes[i]
+        b_mag = B_magnitudes[i]
+        for j in range(0, len(feature_titles)):
+            its = iters[i]
+            title = feature_titles[j]
+            coeff = []
+            #gather values for each coeffiecent
+            for k in range(0, len(its)):
+                instance = a_mag[k][j]
+                coeff.append(instance)
+            plt.plot(its, coeff, label=title)
+        #TODO add b
+    plt.legend()
+    plt.show()
 
 def plot_accuracies(iters, accuracies, lams):
     # plot accuracies that we recorded for given lambda
