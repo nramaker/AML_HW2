@@ -8,7 +8,7 @@ from matplotlib.legend_handler import HandlerLine2D
 #arrays to help us plot
 accuracies = []
 A_arrays=[]
-B_arrays= []
+# B_arrays= []
 iters=[]
 
 #our best results while training
@@ -18,11 +18,11 @@ best_accuracy = 0.0
 best_reg_constant=0
 
 #tuning parameters
-epochs = 200
+epochs = 50
 Nb = 300 # batch size
-m = 2.5 #used to calulate step size
+m = .5 #used to calulate step size
 n = 1 # used to calculate step size
-reporting_constant = 1 # how often do we want to track our accuracies and magnitueds
+reporting_constant = 30 # how often do we want to track our accuracies and magnitueds
 reg_constants = [ 1, .1, .01, .001]
 #reg_constants = [ .1]
 
@@ -62,10 +62,10 @@ def train_and_predict():
     for lam in reg_constants:
         print(" ")
         print("### Fitting model with reg_constant: {}".format(lam))
-        A, B, accs, a_mags, b_mags, its= fit(train_features, train_labels, valid_features, valid_labels, lam)
+        A, B, accs, a_mags, its= fit(train_features, train_labels, valid_features, valid_labels, lam)
         accuracies.append(accs)
         A_arrays.append(a_mags)
-        B_arrays.append(b_mags)
+        # B_arrays.append(b_mags)
         iters.append(its)
 
     #check test accuracy using best classifier
@@ -85,28 +85,44 @@ def fit(train_features, train_labels, test_features, test_labels, lam):
     #local measurements
     accs = []
     a_mags = []
-    b_mags = []
     its = []
 
     #loop to train model
     for i in range(1, epochs):
     
         step_size = calc_step_size(epoch=i)
-        # A, B, a_mags= calc_updated_coeffs(train_features, train_labels.as_matrix(), Nb, A, B, step_size, lam)
 
         selected_X, selected_labels = select_sub_batch(train_features, train_labels.as_matrix(), batch_size=Nb)
-        # perform gradient descent
-        A, B, a_mags = calc_new_A(X=selected_X.as_matrix(), y=selected_labels.as_matrix(), a=A.T, b=B, eta=step_size, lam=lam)
+        X=selected_X.as_matrix()
+        y=selected_labels.as_matrix()
+        a = A.T
+        
+        for j in range(len(y)):
+            #check to see if the magnitude of our cost is 
+            if y[j] * (np.dot(a, X[j]) + B) >= 1:
+                a -= step_size * lam * a
+                B -= step_size * 0 
+            else:
+                a -= step_size * (lam * a - y[j] * X[j])
+                B -= step_size * -y[j]
+            # at regular intervals, tests and record our process
+            if j % reporting_constant == 0 :
+                its.append(j+i*Nb)
+                magnitude = list(map(lambda x: np.sqrt(np.dot(x,x)),a))
+                a_mags.append(magnitude)
+                accuracy = predict_and_test_accuracy(test_features,test_labels, a.T, B) # test the accuracy on the current A, B with the validation data
+                accs.append(accuracy) # record our accuracy
+                update_best(a.T, B, accuracy, lam)
 
-        #track our errors
-        if(i%reporting_constant == 0):
-            its.append(i) # record what iteration we're in
-            a_mags.append(A)  # record our A vector
-            b_mags.append(B) # record our B scalar
-            accuracy = predict_and_test_accuracy(test_features,test_labels, A, B) # test the accuracy on the current A, B with the validation data
-            accs.append(accuracy) # record our accuracy
+    return a.T, B, accs, a_mags, its
 
-    return A, B, accs, a_mags, b_mags, its
+def update_best(A, B, accuracy, lam):
+    if accuracy > best_accuracy:
+        pass
+        # best_accuracy=accuracy
+        # best_A = A
+        # best_B = B
+        # best_reg_constant=lam
 
 def predict(X, A, B):
     pred = np.dot(np.transpose(A), X) + B
@@ -122,12 +138,8 @@ def show_plots():
     # plot accuracies that we recorded for given lambda
     plt.figure(1)
     
-    for i in range(0, len(reg_constants)):
-        lam = reg_constants[i]       
-        its = iters[i]
-        accs = accuracies[i]
-        
-        plt.plot(its, accs, marker='o', label = lam)
+    for i in range(0, len(reg_constants)):        
+        plt.plot(iters[i], accuracies[i], marker='o', label = reg_constants[i])
         plt.xscale('log')
         plt.yscale('linear')
         
@@ -135,58 +147,13 @@ def show_plots():
     plt.legend()
     plt.grid(True)
     
-    # plt.figure(2)
-    # plt.title("Coeffiecent magnitudes")
-    # for i in range(0, len(reg_constants)):
-    #     this_A = A_arrays[i]
-    #     print("this_A[0] {}".format(this_A[0]))
-    #     print("this_A[1] {}".format(this_A[1]))
-    #     print("this_A[2] {}".format(this_A[2]))
-    #     print("this_A[3] {}".format(this_A[3]))
-    #     # print("a_mags {}".format(a_mags))
-    #     #a_mags = np.sqrt(np.dot(this_A,this_A))
-    #     plt.plot(this_A.index,this_A, label=reg_constants[i])
-    # plt.legend()
-
-    # plot of coeffients (not required)
-    # plt.figure(3)
-    # feature_titles = ['age', 'fnlwgt', 'education-num', 'capital-gain', 'capital-loss', 'hours-per-week']
-    # plot_locs = [321, 322, 323, 324]
-    # plt.title("Coeffiecent magnitudes")
-    
-    # for i in range(0, len(reg_constants)):
-    #     plt.subplot(plot_locs[i])
-    #     plt.title("reg constant: {}".format(reg_constants[i]))
-    #     for j in range(0, len(feature_titles)):
-    #         coeff = []
-    #         #gather values for each coeffiecent
-    #         for k in range(0, len(iters[i])):
-    #             coeff.append(A_arrays[i][k][j])
-    #         plt.xscale('log')
-    #         plt.plot(iters[i], coeff, label=feature_titles[j])
-    #     plt.plot(iters[i], B_arrays[i], label="bias")
-    # plt.legend(loc='lower center', bbox_to_anchor=(0, -1.0),
-    #       ncol=3, fancybox=True, shadow=True)
+    #plot the magnitues of the coefficients
+    plt.figure(2)
+    plt.title("Coeffiecent magnitudes")
+    for i in range(0, len(reg_constants)):
+        plt.plot(iters[i],A_arrays[i], label=reg_constants[i])
+    plt.legend()
     plt.show()
-
-# def calc_updated_coeffs(features, labels, batch_size, A, B, step_size, lam):
-
-#     # #join the features and labels so we get matching samples
-#     # joined = pd.DataFrame.copy(features)
-#     # joined['label'] = list(labels)
-
-#     # #get sub batch from data of batch_size
-#     # selected = joined.sample(n=batch_size)
-    
-#     # # separate them again
-#     # selected_labels = selected['label']
-#     # selected_X = selected.drop('label', axis=1)
-
-#     selected_X, selected_labels = select_sub_batch(features, labels, batch_size)
-#     # perform gradient descent
-#     new_A, new_B, a_magnitudes = calc_new_A(X=selected_X.as_matrix(), y=selected_labels.as_matrix(), a=A.T, b=B, eta=step_size, lam=lam)
-#     # new_B = calc_new_B(X=selected_X.as_matrix(), y=selected_labels.as_matrix(), a=A.T, b=B, eta=step_size)
-#     return new_A, new_B, a_magnitudes
 
 def select_sub_batch(features, labels, batch_size):
         #join the features and labels so we get matching samples
@@ -199,36 +166,7 @@ def select_sub_batch(features, labels, batch_size):
     # separate them again
     selected_labels = selected['label']
     selected_X = selected.drop('label', axis=1)
-    return selected_X, selected_labels
-
-def calc_new_A(X, y, a, b, eta, lam):
-    #for every instance in our batch
-    a_magnitudes = []
-    accuracies = []
-    for i in range(len(y)):
-        #check to see if the magnitude of our cost is 
-        if y[i] * (np.dot(a, X[i]) + b) >= 1:
-            a -= eta * lam * a
-            b -= eta * 0 
-        else:
-            a -= eta * (lam * a - y[i] * X[i])
-            b -= eta * -y[i]
-        if i % reporting_constant == 0 :
-            magnitude = list(map(lambda x: np.sqrt(np.dot(x,x)),a))
-            a_magnitudes.append(magnitude)
-            
-            
-    return (a.T,b, a_magnitudes)
-
-# def calc_new_B(X, y, a, b, eta):
-#     #for every instance in our batch
-#     for i in range(len(y)):
-#         #check to see if the magnitude of our cost is 
-#         if y[i] * (np.dot(a, X[i]) + b) >= 1:
-#             b -= eta * 0 
-#         else:
-#             b -= eta * -y[i]
-#     return b
+    return selected_X, selected_labels            
 
 def calc_step_size(epoch):
     return m/(epoch+n)
