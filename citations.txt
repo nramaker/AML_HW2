@@ -1,14 +1,25 @@
+Class documents:
 DAFs SVM code - http://luthuli.cs.uiuc.edu/~daf/courses/AML-18/RCodeClassification/svmholdoutsquaredfeats.R
-Python List tutorial - https://developers.google.com/edu/python/lists
+formulas for updating gradients page 35 -http://luthuli.cs.uiuc.edu/~daf/courses/AML-18/learning-book-15-Jan.pdf
+
+Pandas documentation
 Reading CSV in Pandas = https://pythonspot.com/pandas-read-csv/
 Changing a Dataframe to numpy array - https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.as_matrix.html
 Splitting dataframe with pandas - https://stackoverflow.com/questions/24147278/how-do-i-create-test-and-train-samples-from-one-dataframe-with-pandas
 Pandas data access - https://stackoverflow.com/questions/25254016/pandas-get-first-row-value-of-a-given-column
 Pandas drop - https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.drop.html
+
+Overall:
 Python SVM from scratch - https://pythonprogramming.net/svm-in-python-machine-learning-tutorial/
+
+Example of scaling data:
 Scaling with sklearn https://stackoverflow.com/questions/24645153/pandas-dataframe-columns-scaling-with-sklearn
-formulas for updating gradients page 35 -http://luthuli.cs.uiuc.edu/~daf/courses/AML-18/learning-book-15-Jan.pdf
+
+Lamba examples:
 lamba with conditions - https://stackoverflow.com/questions/1585322/is-there-a-way-to-perform-if-in-pythons-lambda
+
+Plotting examples:
 matplot lib tutorial - https://matplotlib.org/users/pyplot_tutorial.html
-legends and lines - https://matplotlib.org/users/legend_guide.html
-https://stackoverflow.com/questions/4700614/how-to-put-the-legend-out-of-the-plot
+
+NOT USED legends and lines - https://matplotlib.org/users/legend_guide.html
+NOT USED - https://stackoverflow.com/questions/4700614/how-to-put-the-legend-out-of-the-plot

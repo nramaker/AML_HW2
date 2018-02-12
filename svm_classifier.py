@@ -8,20 +8,13 @@ from matplotlib.legend_handler import HandlerLine2D
 #arrays to help us plot
 accuracies = []
 A_arrays=[]
-# B_arrays= []
 iters=[]
-
-#our best results while training
-best_A=[]
-best_B=1
-best_accuracy = 0.0
-best_reg_constant=0
 
 #tuning parameters
 epochs = 50
 Nb = 300 # batch size
-m = .5 #used to calulate step size
-n = 1 # used to calculate step size
+m = 1.5 #used to calulate step size
+n = 10 # used to calculate step size
 reporting_constant = 30 # how often do we want to track our accuracies and magnitueds
 reg_constants = [ 1, .1, .01, .001]
 #reg_constants = [ .1]
@@ -59,21 +52,42 @@ def train_and_predict():
     print("Validation Features Shape: {}".format(valid_features.shape))
     print("Validation Labels Shape: {}".format(valid_labels.shape))
 
+    #our best results while training
+    best_A=[]
+    best_B=1
+    best_accuracy = 0.0
+    best_reg_constant=0
+    
     for lam in reg_constants:
         print(" ")
         print("### Fitting model with reg_constant: {}".format(lam))
-        A, B, accs, a_mags, its= fit(train_features, train_labels, valid_features, valid_labels, lam)
+        A, B, best_acc, best_reg_constant, accs, a_mags, its= fit(train_features, train_labels, valid_features, valid_labels, lam)
         accuracies.append(accs)
         A_arrays.append(a_mags)
-        # B_arrays.append(b_mags)
         iters.append(its)
+        
+        if best_acc > best_accuracy:
+            best_accuracy=best_acc
+            best_A = A
+            best_B = B
+            best_reg_constant=lam
+        
+        accuracy = predict_and_test_accuracy(test_features, test_labels, A, B)
+        print("")
+        print("Accuracy on Test Set: {}".format(accuracy))
+        print("Using A {}".format(A.T))
+        print("Using B {}".format(B))
+        print("Using lam {}".format(lam))
 
-    #check test accuracy using best classifier
-    accuracy = predict_and_test_accuracy(test_features, test_labels, A, B)
-    print("Accuracy on Test Set: {}".format(accuracy))
-    print("Using A {}".format(A.T))
-    print("Using B {}".format(B))
-    print("Using lam {}".format(lam))
+    # #check test accuracy using best classifier
+    accuracy = predict_and_test_accuracy(test_features, test_labels, best_A, best_B)
+    print("")
+    print("### Final Results")
+    print("Best Accuracy on Validation Set: {}".format(best_accuracy))
+    print("Accuracy on Test Set Using Same Model: {}".format(accuracy))
+    print("Using A {}".format(best_A.T))
+    print("Using B {}".format(best_B))
+    print("Using lam {}".format(best_reg_constant))
 
 
 def fit(train_features, train_labels, test_features, test_labels, lam):
@@ -86,6 +100,10 @@ def fit(train_features, train_labels, test_features, test_labels, lam):
     accs = []
     a_mags = []
     its = []
+    
+    best_accuracy=0.0
+    best_A = []
+    best_B = 0
 
     #loop to train model
     for i in range(1, epochs):
@@ -112,17 +130,14 @@ def fit(train_features, train_labels, test_features, test_labels, lam):
                 a_mags.append(magnitude)
                 accuracy = predict_and_test_accuracy(test_features,test_labels, a.T, B) # test the accuracy on the current A, B with the validation data
                 accs.append(accuracy) # record our accuracy
-                update_best(a.T, B, accuracy, lam)
+                
+                if accuracy > best_accuracy:
+                    best_accuracy=accuracy
+                    best_A = a.T
+                    best_B = B
+                    best_reg_constant=lam
 
-    return a.T, B, accs, a_mags, its
-
-def update_best(A, B, accuracy, lam):
-    if accuracy > best_accuracy:
-        pass
-        # best_accuracy=accuracy
-        # best_A = A
-        # best_B = B
-        # best_reg_constant=lam
+    return best_A, best_B, best_accuracy, best_reg_constant, accs, a_mags, its
 
 def predict(X, A, B):
     pred = np.dot(np.transpose(A), X) + B
@@ -139,7 +154,7 @@ def show_plots():
     plt.figure(1)
     
     for i in range(0, len(reg_constants)):        
-        plt.plot(iters[i], accuracies[i], marker='o', label = reg_constants[i])
+        plt.plot(iters[i], accuracies[i], label = reg_constants[i])
         plt.xscale('log')
         plt.yscale('linear')
         
@@ -156,7 +171,7 @@ def show_plots():
     plt.show()
 
 def select_sub_batch(features, labels, batch_size):
-        #join the features and labels so we get matching samples
+    #join the features and labels so we get matching samples
     joined = pd.DataFrame.copy(features)
     joined['label'] = list(labels)
 
