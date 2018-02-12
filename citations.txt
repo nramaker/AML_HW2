@@ -11,3 +11,4 @@ formulas for updating gradients page 35 -http://luthuli.cs.uiuc.edu/~daf/courses
 lamba with conditions - https://stackoverflow.com/questions/1585322/is-there-a-way-to-perform-if-in-pythons-lambda
 matplot lib tutorial - https://matplotlib.org/users/pyplot_tutorial.html
 legends and lines - https://matplotlib.org/users/legend_guide.html
+https://stackoverflow.com/questions/4700614/how-to-put-the-legend-out-of-the-plot
