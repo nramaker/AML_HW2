@@ -92,7 +92,11 @@ def fit(train_features, train_labels, test_features, test_labels, lam):
     for i in range(1, epochs):
     
         step_size = calc_step_size(epoch=i)
-        A, B, a_mags= calc_updated_coeffs(train_features, train_labels.as_matrix(), Nb, A, B, step_size, lam)
+        # A, B, a_mags= calc_updated_coeffs(train_features, train_labels.as_matrix(), Nb, A, B, step_size, lam)
+
+        selected_X, selected_labels = select_sub_batch(train_features, train_labels.as_matrix(), batch_size=Nb)
+        # perform gradient descent
+        A, B, a_mags = calc_new_A(X=selected_X.as_matrix(), y=selected_labels.as_matrix(), a=A.T, b=B, eta=step_size, lam=lam)
 
         #track our errors
         if(i%reporting_constant == 0):
@@ -165,9 +169,27 @@ def show_plots():
     #       ncol=3, fancybox=True, shadow=True)
     plt.show()
 
-def calc_updated_coeffs(features, labels, batch_size, A, B, step_size, lam):
+# def calc_updated_coeffs(features, labels, batch_size, A, B, step_size, lam):
 
-    #join the features and labels so we get matching samples
+#     # #join the features and labels so we get matching samples
+#     # joined = pd.DataFrame.copy(features)
+#     # joined['label'] = list(labels)
+
+#     # #get sub batch from data of batch_size
+#     # selected = joined.sample(n=batch_size)
+    
+#     # # separate them again
+#     # selected_labels = selected['label']
+#     # selected_X = selected.drop('label', axis=1)
+
+#     selected_X, selected_labels = select_sub_batch(features, labels, batch_size)
+#     # perform gradient descent
+#     new_A, new_B, a_magnitudes = calc_new_A(X=selected_X.as_matrix(), y=selected_labels.as_matrix(), a=A.T, b=B, eta=step_size, lam=lam)
+#     # new_B = calc_new_B(X=selected_X.as_matrix(), y=selected_labels.as_matrix(), a=A.T, b=B, eta=step_size)
+#     return new_A, new_B, a_magnitudes
+
+def select_sub_batch(features, labels, batch_size):
+        #join the features and labels so we get matching samples
     joined = pd.DataFrame.copy(features)
     joined['label'] = list(labels)
 
@@ -177,11 +199,7 @@ def calc_updated_coeffs(features, labels, batch_size, A, B, step_size, lam):
     # separate them again
     selected_labels = selected['label']
     selected_X = selected.drop('label', axis=1)
-
-    # perform gradient descent
-    new_A, new_B, a_magnitudes = calc_new_A(X=selected_X.as_matrix(), y=selected_labels.as_matrix(), a=A.T, b=B, eta=step_size, lam=lam)
-    # new_B = calc_new_B(X=selected_X.as_matrix(), y=selected_labels.as_matrix(), a=A.T, b=B, eta=step_size)
-    return new_A, new_B, a_magnitudes
+    return selected_X, selected_labels
 
 def calc_new_A(X, y, a, b, eta, lam):
     #for every instance in our batch
